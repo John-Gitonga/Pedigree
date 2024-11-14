@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.  
+
+### Importing the dataframe
+
+See the attached
+```{r}
+rhinos <- read.csv("~/Strathmore/MSc Data Science Analytics/Year 1/Module III/Dissertation Seminar I/Data folder/Nairobi/rhinos.csv", stringsAsFactors=TRUE)
+print(rhinos)
+
+```
+
+### Doing some EDA
+
+```{r}
+sum(is.na(rhinos$id))     # Check for missing IDs
+sum(is.na(rhinos$sex))    # Check for missing sex values
+sum(duplicated(rhinos$id))  # Check for duplicate IDs
+
+# Identify the duplicated IDs
+duplicated_rows <- rhinos[duplicated(rhinos$id) | duplicated(rhinos$id, fromLast = TRUE), ]
+# Print the duplicated rows
+print(duplicated_rows)
+# Remove the duplicate rows based on the 'id' column
+rhinos_no_dup <- rhinos[!duplicated(rhinos$id), ]
+
+# Print the cleaned data frame without duplicates
+print(rhinos_no_dup)
+
+```
+
+
+### Visualisation and ploting
+
+```{r}
+rhinos_no_dup
+# Ensure the 'id', 'dadid', and 'momid' columns are character or factor
+rhinos_no_dup$id <- as.character(rhinos_no_dup$id)
+rhinos_no_dup$dadid <- as.character(rhinos_no_dup$dadid)
+rhinos_no_dup$momid <- as.character(rhinos_no_dup$momid)
+rhinos_no_dup$sex <- as.numeric(rhinos_no_dup$sex)
+#Ensure that for each individual, either both parents are specified or none:
+rhinos_no_dup[is.na(rhinos_no_dup$dadid) != is.na(rhinos_no_dup$momid), ]
+
+# Find dadid values that are not in the id list
+missing_dadids <- setdiff(rhinos_no_dup$dadid, rhinos_no_dup$id)
+
+# Find momid values that are not in the id list
+missing_momids <- setdiff(rhinos_no_dup$momid, rhinos_no_dup$id)
+
+# Print missing parent ids
+print(missing_dadids)
+print(missing_momids)
+
+# Ensure that dadid values that are not in the id list are set to NA
+rhinos_no_dup$dadid[!rhinos_no_dup$dadid %in% rhinos_no_dup$id] <- NA
+rhinos_no_dup$momid[!rhinos_no_dup$momid %in% rhinos_no_dup$id] <- NA
+# Create the pedigree object
+ped <- pedigree(id = rhinos_no_dup$id,
+                dadid = rhinos_no_dup$dadid,
+                momid = rhinos_no_dup$momid,
+                sex = rhinos_no_dup$sex)
+
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+plot(ped, ces=0.1, asp=25/4, cex=0.5)
+calcInbreeding(pro)
+countGen(pro)
+kinship(ped)
+
+```

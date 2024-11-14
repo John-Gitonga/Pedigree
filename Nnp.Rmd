@@ -1,0 +1,560 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: Theuri John Gitonga, 150119
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+Upload required packages form R
+
+```{r}
+#input: files stored on the Google drive.
+#outputs: a list called "kifaru" with rhinos, mortalities, sightings, patrols
+library(tidyverse)
+library("googlesheets4")
+library(dplyr)
+library(stringr)
+
+#Animal IDs- combine all of the files here, or bring in the cleaned file
+r1<-read_sheet("https://docs.google.com/spreadsheets/d/1cfK3EvdeDRYFZ_PUZFR2XNLVXnQ2Dl73OvK1AIUXJZw/edit?usp=sharing", col_types = "c")
+rhinos.1<-data.frame("ID.No."= r1$ID.No.,
+                     "Name"= toupper(r1$Name), 
+                     "Sex"= r1$Sex,
+                     "Date.of.Birth"= as.Date(r1$Date.of.Birth, format = "%Y-%m-%d"),
+                     "Mother"=toupper(r1$Mother),
+                     "Father"=toupper(r1$Father))
+#Additional rhinos obtained from the translocation history believed to have been deleted from the database after translocation
+#Rhino obtained from Ol Jogi Tranlocation In history data except for ALICE
+r2<-read_sheet("https://docs.google.com/spreadsheets/d/1cbtXD0ocQHoSNGvquaDw6u1EQ94Aey3m5WsNqcJgInA/edit?usp=sharing", col_types = "c")
+rhinos.2<-data.frame("ID.No."= r2$ID.No.,
+                     "Name"= toupper(r2$Name), 
+                     "Sex"= r2$Sex,
+                     "Date.of.Birth"= as.Date(r2$Date.of.Birth, format = "%m/%d/%Y"),
+                     "Mother"=toupper(r2$Mother),
+                     "Father"=toupper(r2$Father))
+#Additional rhinos from MNP introductions
+r3<-read_sheet("https://docs.google.com/spreadsheets/d/1vyO4mbcYZoDBn938rmYURAHQGBMPKmHiyAMVuLB0d80/edit?usp=sharing")
+rhinos.3<- data.frame("ID.No."=r3$ID.No.,
+                      "Name"= toupper(r3$Name),
+                      "Sex"=r3$Sex,
+                      "Date.of.Birth"= as.Date(r3$Date.of.Birth, format= "%Y-%m-%d"),
+                      "Mother"= toupper(r3$Mother),
+                      "Father"= toupper(r3$Father))
+
+rhinos<-unique(rbind(rhinos.1, rhinos.2, rhinos.3))
+rhinos%>%distinct(Name,Sex,Date.of.Birth,.keep_all = TRUE)
+#Rename calves not assigned any unique name to their year of births
+#Rename JUDY CALF of ID 219 born in  2017 to JUDY CALF 2017
+i<-which(rhinos$ID.No. == 219)
+print(rhinos$name[i])
+rhinos$Name[i]<-"JUDY CALF 2017"
+#Rename KULECHO CALF of ID 203 born in 2014 to KULECHO CALF 2014
+i<-which(rhinos$ID.No. == 203)
+rhinos$Name[i]<-"KULECHO CALF 2014"
+#Rename KYELA'S CALF of ID 225 born in 2018 to KYELA CALF 2018
+i<-which(rhinos$ID.No. == 225)
+rhinos$Name[i]<-"KYELA CALF 2018"
+#Rename MILDRED CALF of ID 236 born 2020 to MILDRED CALF 2020
+i<-which(rhinos$ID.No. == 236)
+rhinos$Name[i]<-"MILDRED CALF 2020"
+#Rename WAHITO'S CALF of ID 238 born in 2020 to WAHITO CALF 2020
+i<-which(rhinos$ID.No. == 238)
+rhinos$Name[i]<-"WAHITO CALF 2020"
+#Assign ALIce date of Birth and ID No.
+i<-which(rhinos$Name == "ALICE")
+rhinos$ID.No.[i]<-93
+rhinos$Date.of.Birth[i]<- as.Date("1996/06/01", format = "%Y/%m/%d")
+rhinos$Sex[i]<-"Female"
+#Correct the ID.No. and Date of Birth for Trufena whose ID.No. are conflicting with Gitonga
+i<-which(rhinos$Name == "TRUFENA")
+rhinos$ID.No.[i]<- 170
+rhinos$Date.of.Birth[i]<- as.Date("2005/02/01", format = "%Y/%m/%d")
+#NNP Mortalities - Imports
+m1<-read_sheet("https://docs.google.com/spreadsheets/d/1hhIXedK1K0pnfPHJoll8KHZmMpkVKGKvQJ9TOdjTq50/edit?usp=sharing", col_types = "c")
+
+mortalities<-data.frame("Species"="rhino",
+                        "ID.No."=m1$ID.No.,
+                        "Name"=toupper(m1$Animal.Name),
+                        "Sex"=m1$Sex,
+                        "Date.of.Birth"=as.Date(m1$Date.of.Birth, format = "%m/%d/%Y"),
+                        "Mortality.Date"=as.Date(m1$Mortality.Date, format="%m/%d/%Y"),
+                        "Apparent.Cause.of.Death"=m1$Apparent.Cause.of.Death,
+                        "Carcass.State"=NA)
+#Add ID No. to Grace and Adam
+i<-which(mortalities$Name == "GRACE")
+mortalities$ID.No.[i]<-220
+i<-which(mortalities$Name == "ADAM")
+mortalities$ID.No.[i]<- 69
+#Assign details to ALICE 
+i<-which(mortalities$Name == "ALICE")
+mortalities$ID.No.[i]<-93
+mortalities$Date.of.Birth[i]<- as.Date("1996/06/01", format = "%Y/%m/%d")
+mortalities$Sex[i]<-"Female"
+#Nairobi NP Translocations
+t1<-read_sheet("https://docs.google.com/spreadsheets/d/1OTCoWCkEVpouXq2lVc3c6tDQYZZesy-4pKMT8ME-gn8/edit?usp=sharing", col_types = "c")
+trans.1<-data.frame(ID.No.= t1$ID.No.,
+                    Name= toupper(t1$Animal.Name),
+                    Sex= t1$Sex,
+                    Date.of.Birth= as.Date(t1$Date.of.Birth, format = "%m/%d/%Y"),
+                    Date.Moved.Out= as.Date(t1$Date.Moved.Out, format = "%m/%d/%Y"),
+                    Destination=t1$Destination)
+#Correct the ID.No. and Date of Birth for TRUFENA to 156 born on 1st Feb 2005
+#i<-which(trans.out$ID.No. == 143)
+#trans.out$ID.No.[i]<- 170
+#trans.out$Date.of.Birth[i]<- as.Date("2005/02/01", format = "%Y/%m/%d")
+
+#Add trans.out from MNP introductions
+#Translocation out date was extracted from the introduction date in  MNP
+t2<-read_sheet("https://docs.google.com/spreadsheets/d/1R5oiNwrMIDtFDNolHo9l-8b1sbKg6TSv9Lhx6tB87-g/edit?usp=sharing", col_types = "c")
+trans.2<-data.frame("ID.No."= t2$ID.No.,
+                    "Name"= toupper(t2$Name),
+                    "Sex"=t2$Sex,
+                    "Date.of Birth"=as.Date(t2$Date.of.Birth, format = "%m/%d/%Y"),
+                    "Date.Moved.Out"=as.Date(t2$Date.Moved.Out, format = "%m/%d/%Y"),
+                    "Destination"= t2$Destination)
+trans.2$Name[trans.2$Name=="DOREEN"]<- "DORENE"
+trans.out<- unique(rbind(trans.1, trans.2))
+trans.in<-data.frame( species = NA,
+                      ID.No.= NA,
+                      Name= NA,
+                      Sex= NA,
+                      Date.of.Birth=  NA,
+                      Date.Moved.In= NA,
+                      Source=NA)
+
+#Correct the ID.No. and Date of Birth for TRUFENA to 156 born on 1st Feb 2005
+i<-which(trans.out$ID.No. == 143)
+trans.out$ID.No.[i]<- 170
+trans.out$Date.of.Birth[i]<- as.Date("2005/02/01", format = "%Y/%m/%d")
+
+final.data<-list(site="Nairobi National Park",
+                 rhinos=rhinos,
+                 mortalities=mortalities,
+                 introductions=trans.in,
+                 removals=trans.out,
+                 date.gen=Sys.Date(), 
+                 creator=Sys.info()["user"]
+)
+
+
+```
+
+
+```{r}
+#Generate a Cow Calf relationship
+rhinos_2 <- rhinos
+rhinos_2<-data.frame(mother=rhinos$Mother,
+               child=rhinos$Name) 
+               
+rhinos_2$Mother[is.na(rhinos_2$mother)]<-"UNKNOWN"
+
+#if mother in snot in child columne, add 
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+to.add<-which(unique(rhinos_2$Mother)%!in%rhinos_2$Name==TRUE)
+to.add<-unique(rhinos_2$Mother)[to.add]
+to.add.df<-data.frame(
+  mother="UNKNOWN",
+  child=to.add,
+  status="in population"
+)
+
+i.na<-which(is.na(rhinos_2$child)==TRUE)
+if(length(i.na)>0){
+  df<-rhinos_2[-i.na,]} 
+i.na<-which(is.na(to.add.df$child)==TRUE)
+if(length(i.na)>0){
+  to.add.df<-to.add.df[-i.na,]} 
+
+df_1<-rbind(rhinos_2,to.add.df)
+
+df_1<-rbind(c(NA,"UNKNOWN",	"in population"),rhinos_2)
+
+#rhinos_2$color <- rhinos_2$status
+#levels(rhinos_2$color) <- c("red","green","yellow","black")
+
+collapsibleTreeNetwork(
+  rhinos_2,
+  #attribute = "status",
+  #fill = "color",
+  collapsed = T)
+
+
+
+```
+
+
+
+```{r}
+# Install the packages if not already installed
+#install.packages("collapsibleTree")
+#install.packages("data.tree")
+
+# Load the packages
+library(collapsibleTree)
+library(data.tree)
+
+# Create the rhinos_2 data frame
+rhinos_2 <- data.frame(mother = rhinos$Mother, child = rhinos$Name)
+
+# Add a root node
+rhinos_2 <- rbind(data.frame(mother = "Root", child = unique(rhinos_2$mother)), rhinos_2)
+
+# Create a tree structure from the rhinos_2 data frame
+rhino_tree <- FromDataFrameNetwork(rhinos_2)
+
+# Generate a collapsible tree diagram
+collapsibleTree(
+  rhino_tree,
+  root = "Root",
+  nodeSize = "leafCount",
+  fontSize = 10,
+  linkLength = 50
+)
+
+```
+
+```{r}
+library(collapsibleTree)
+library(data.tree)
+
+# Create the rhinos_2 data frame
+rhinos_2 <- data.frame(mother = rhinos$Mother, child = rhinos$Name)
+
+# Add a root node
+root_nodes <- unique(rhinos_2$mother)
+rhinos_2 <- rbind(data.frame(mother = "Root", child = root_nodes), rhinos_2)
+
+# Remove any rows where child is NA
+rhinos_2 <- rhinos_2[!is.na(rhinos_2$child), ]  
+
+# Convert the data frame to a data.tree structure
+rhino_tree <- FromDataFrameNetwork(rhinos_2)
+
+# Define a function to calculate the relatedness level (depth)
+rhino_tree$Do(function(node) {
+  node$relatedness <- node$Get("levelName")
+}, traversal = "post-order")
+
+# Generate a collapsible tree diagram
+collapsibleTree(
+  rhino_tree,
+  root = "Root",
+  nodeSize = "leafCount",
+  attribute = "relatedness",  # Show relatedness levels
+  fontSize = 10,
+  linkLength = 50
+)
+
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+```{r}
+## Install the packages if not already installed
+#install.packages("collapsibleTree")
+#install.packages("data.tree")
+#install.packages("htmlwidgets")
+#install.packages("webshot")
+
+# Load the packages
+library(collapsibleTree)
+library(data.tree)
+library(htmlwidgets)
+library(webshot)
+
+# Create the rhinos_2 data frame
+rhinos_2 <- data.frame(mother = rhinos$Mother, child = rhinos$Name)
+
+# Handle missing mother values
+rhinos_2$mother[is.na(rhinos_2$mother)] <- "UNKNOWN"
+
+# Define a custom function to check if an element is not in a vector
+'%!in%' <- function(x, y) !('%in%'(x, y))
+
+# Add missing mothers as children if they are not already present
+to.add <- which(unique(rhinos_2$mother) %!in% rhinos_2$child == TRUE)
+to.add <- unique(rhinos_2$mother)[to.add]
+to.add.df <- data.frame(
+  mother = "UNKNOWN",
+  child = to.add
+)
+
+# Handle missing children
+i.na <- which(is.na(rhinos_2$child) == TRUE)
+if(length(i.na) > 0){
+  rhinos_2 <- rhinos_2[-i.na,]
+}
+i.na <- which(is.na(to.add.df$child) == TRUE)
+if(length(i.na) > 0){
+  to.add.df <- to.add.df[-i.na,]
+}
+
+# Combine the data frames
+df_1 <- rbind(rhinos_2, to.add.df)
+
+# Add the root node
+df_1 <- rbind(data.frame(mother = "Root", child = unique(df_1$mother)), df_1)
+
+# Create a tree structure from the df_1 data frame
+rhino_tree <- FromDataFrameNetwork(df_1)
+
+# Generate a collapsible tree diagram
+tree <- collapsibleTree(
+  rhino_tree,
+  root = "Root",
+  nodeSize = "leafCount",
+  fontSize = 10,
+  linkLength = 100
+)
+
+# Save the collapsible tree as an HTML file
+#saveWidget(tree, file = "rhino_tree.html")
+
+# Save the collapsible tree as a PNG image
+#webshot("rhino_tree.html", file = "rhino_tree.png", selector = "svg")
+
+```
+
+
+```{r}
+setwd("/Users/her_babyness/Documents/Exmoor_ponies/")
+library("pedigree")
+library("kinship2")
+library("pedantics")
+
+pro=read.csv("Pedigree_edited.csv")
+attach(pro)
+ped <- pedigree(ID,Father,Mother,Sex,alive)
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+plot(ped, ces=0.1, asp=25/4, cex=0.5)
+
+calcInbreeding(pro)
+countGen(pro)
+kinship(ped)
+
+install.packages("~/Downloads/pedantics_1.7.tar", repos = NULL,  type="binary")
+
+
+```
+
+### PEDIGREE OF NAIROBI RHINOS
+
+```{r}
+#setwd("/Users/her_babyness/Documents/Exmoor_ponies/")
+#install.packages("pedantics")
+#install.packages("kinship2")
+#install.packages("remotes")
+#install.packages("devtools")
+library("kinship2")
+library("devtools")  
+library("pedantics")
+```
+
+
+```{r}
+nairobi_rhinos <- read.csv("~/Strathmore/MSc Data Science Analytics/Year 1/Module III/Dissertation Seminar I/Data folder/Nairobi/Nairobi rhinos.csv")
+#attach(nairobi_rhinos)
+
+```
+
+
+```{r}
+nairobi_rhinos
+#getwd()
+```
+
+
+```{r}
+nairobi_rhinos
+# Loop through each element in the "Sex" column
+for (i in 1:length(nairobi_rhinos$sex)) {
+  if (nairobi_rhinos$sex[i] == "Female") {
+    nairobi_rhinos$sex[i] <- 2
+  } else if (nairobi_rhinos$sex[i] == "Male") {
+    nairobi_rhinos$sex[i] <- 1
+  } else {
+    nairobi_rhinos$sex[i] <- 0  # Handling other cases such as "Unknown"
+  }
+}
+
+# Print the updated data frame
+print(nairobi_rhinos)
+
+
+```
+
+
+```{r}
+name_marks
+for (i in 1:nrow(name_marks)) {
+  if (name_marks$Biology[i] == 78) {
+    cat("The student who scored 78 in Biology is:", name_marks$student_name[i], "\n")
+  }
+}
+
+name_marks
+for (x in 1:length(name_marks$Maths)) {#iterate through the Maths column
+  if (name_marks$Maths[x] == 123) {#Check in the math column if there is 78 marks
+    cat("The student who scored 78 in Mathematics is:", name_marks$student_name[x], "\n")
+  }
+
+else{
+  print("None")
+
+```
+
+```{r}
+#nairobi_rhinos2 <- nairobi_rhinos[, -c(1, 4)]
+nairobi_rhinos2 <- nairobi_rhinos[, -1]
+print(nairobi_rhinos2)
+```
+
+
+
+```{r}
+nairobi_rhinos2
+ped <- pedigree("ID", "Father", "Mother" ,"sex" )
+
+align.nairobi_rhinos2(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+plot(ped, ces=0.1, asp=25/4, cex=0.5)
+
+calcInbreeding(pro)
+countGen(pro)
+kinship(ped)
+
+install.packages("~/Downloads/pedantics_1.7.tar", repos = NULL,  type="binary")
+
+```
+
+
+
+
+
+### OPTION 3
+
+```{r}
+rhinos <- read.csv("~/Strathmore/MSc Data Science Analytics/Year 1/Module III/Dissertation Seminar I/Data folder/Nairobi/rhinos.csv", stringsAsFactors=TRUE)
+print(rhinos)
+
+```
+```{r}
+sum(is.na(rhinos$id))     # Check for missing IDs
+sum(is.na(rhinos$sex))    # Check for missing sex values
+sum(duplicated(rhinos$id))  # Check for duplicate IDs
+
+# Identify the duplicated IDs
+duplicated_rows <- rhinos[duplicated(rhinos$id) | duplicated(rhinos$id, fromLast = TRUE), ]
+# Print the duplicated rows
+print(duplicated_rows)
+# Remove the duplicate rows based on the 'id' column
+rhinos_no_dup <- rhinos[!duplicated(rhinos$id), ]
+
+# Print the cleaned data frame without duplicates
+print(rhinos_no_dup)
+
+
+```
+
+
+
+
+```{r}
+rhinos_no_dup
+# Ensure the 'id', 'dadid', and 'momid' columns are character or factor
+rhinos_no_dup$id <- as.character(rhinos_no_dup$id)
+rhinos_no_dup$dadid <- as.character(rhinos_no_dup$dadid)
+rhinos_no_dup$momid <- as.character(rhinos_no_dup$momid)
+rhinos_no_dup$sex <- as.numeric(rhinos_no_dup$sex)
+#Ensure that for each individual, either both parents are specified or none:
+rhinos_no_dup[is.na(rhinos_no_dup$dadid) != is.na(rhinos_no_dup$momid), ]
+
+# Find dadid values that are not in the id list
+missing_dadids <- setdiff(rhinos_no_dup$dadid, rhinos_no_dup$id)
+
+# Find momid values that are not in the id list
+missing_momids <- setdiff(rhinos_no_dup$momid, rhinos_no_dup$id)
+
+# Print missing parent ids
+print(missing_dadids)
+print(missing_momids)
+
+# Ensure that dadid values that are not in the id list are set to NA
+rhinos_no_dup$dadid[!rhinos_no_dup$dadid %in% rhinos_no_dup$id] <- NA
+rhinos_no_dup$momid[!rhinos_no_dup$momid %in% rhinos_no_dup$id] <- NA
+# Create the pedigree object
+ped <- pedigree(id = rhinos_no_dup$id,
+                dadid = rhinos_no_dup$dadid,
+                momid = rhinos_no_dup$momid,
+                sex = rhinos_no_dup$sex)
+
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+plot(ped, asp=25/4, cex=0.5)
+calcInbreeding(pro)
+countGen(pro)
+kinship(ped)
+#install.packages("~/Downloads/pedantics_1.7.tar", repos = NULL,  type="binary")
+
+
+```
+
+
+### OPTION 4
+
+```{r}
+n_rhinos <- rhinos
+for (i in 1:length(n_rhinos$sex)) {
+  if (n_rhinos$sex[i] == 2) {
+    n_rhinos$sex[i] <- "female"
+  } else if (n_rhinos$sex[i] == 1) {
+    n_rhinos$sex[i] <- "male"
+  } else {
+    n_rhinos$sex[i] <- "unknown"  # Handling other cases such as "Unknown"
+  }
+}
+
+```
+
+
+
+```{r}
+n_rhinos
+ped <- pedigree("id", "dadid" ,"momid", "sex" )
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+plot(ped, ces=0.1, asp=25/4, cex=0.5)
+calcInbreeding(pro)
+countGen(pro)
+kinship(ped)
+
+
+```
+
+### OPTION 5
+```{r}
+new_rhinos <- read.csv("~/Strathmore/MSc Data Science Analytics/Year 1/Module III/Dissertation Seminar I/Data folder/Nairobi/rhinos.csv", stringsAsFactors=TRUE)
+print(new_rhinos)
+
+sum(is.na(new_rhinos))
+
+ped <- pedigree(id = new_rhinos$id,
+                dadid = new_rhinos$dadid,
+                momid = new_rhinos$momid,
+                sex = new_rhinos$sex)
+
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+plot(ped, ces=0.1, asp=25/4, cex=0.5)
+calcInbreeding(new_rhinos)
+countGen(new_rhinos)
+kinship(ped)
+
+```
+
+
+
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

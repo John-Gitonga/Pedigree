@@ -1,0 +1,190 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+```{r}
+lbl <-read.csv("~/Strathmore/MSc Data Science Analytics/Year 1/Module III/Dissertation Seminar I/Data folder/LewaBorana/Lewa Borana.csv")
+```
+
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+#install.packages("tidyverse")
+library(collapsibleTree)
+library(data.tree)
+
+```
+
+```{r}
+# Check for missing values
+sum(is.na(lbl$Mother))  # Should be 0
+sum(is.na(lbl$Name))    # Should be 0
+```
+
+```{r}
+# Ensure all node names are character strings
+lbl$Mother <- as.character(lbl$Mother)
+lbl$Name <- as.character(lbl$Name)
+```
+
+
+```{r}
+# Check for duplicates
+anyDuplicated(lbl$Name)  # Should be 0
+
+```
+
+```{r}
+# Ensure all node names are character strings
+lbl$Mother <- as.character(lbl$Mother)
+lbl$Name <- as.character(lbl$Name)
+
+# Create the rhinos_2 data frame
+lbl2 <- data.frame(mother = lbl$Mother, child = lbl$Name)
+
+# Add a root node
+lbl2 <- rbind(data.frame(mother = "Root", child = unique(lbl2$mother)), lbl2)
+
+# Check for missing or invalid values
+if (sum(is.na(lbl2$mother)) == 0 && sum(is.na(lbl2$child)) == 0) {
+  
+  # Create a tree structure from the rhinos_2 data frame
+  rhino_tree <- FromDataFrameNetwork(lbl2)
+  
+  # Generate a collapsible tree diagram
+  collapsibleTree(
+    rhino_tree,
+    root = "Root",
+    nodeSize = "leafCount",
+    fontSize = 10,
+    linkLength = 50
+  )
+  
+} else {
+  print("There are missing or invalid values in the node names.")
+}
+
+
+```
+```{r}
+any_na <- any(is.na(lbl$Mother))
+any_na2 <- any(is.na(rhinos_4$child))
+```
+
+```{r}
+# Check if there are any NA values in the child column  
+any_na2 <- any(is.na(rhinos_4$child))  
+print(any_na2)
+# Print the result  
+if (any_na2) {  
+  cat("There are NA values in the child column. Removing them...\n")  
+  # Remove rows with NA in the child column  
+  rhinos_4 <- rhinos_4[!is.na(rhinos_4$child), ]  
+} else {  
+  cat("There are no NA values in the child column.\n")  
+}
+
+```
+
+
+
+```{r}
+# Install the packages if not already installed
+#install.packages("collapsibleTree")
+#install.packages("data.tree")
+
+# Load the packages
+library(collapsibleTree)
+library(data.tree)
+
+# Create the rhinos_2 data frame
+rhinos_4 <- data.frame(mother = lbl$Mother, child = lbl$Name)
+
+# Add a root node
+rhinos_4 <- rbind(data.frame(mother = "Root", child = unique(rhinos_4$mother)), rhinos_4)
+
+rhinos_4 <- rhinos_4[!is.na(rhinos_4$child), ]  
+# Create a tree structure from the rhinos_2 data frame
+rhino_tree <- FromDataFrameNetwork(rhinos_4)
+
+# Generate a collapsible tree diagram
+collapsibleTree(
+  rhino_tree,
+  root = "Root",
+  nodeSize = "leafCount",
+  fontSize = 10,
+  linkLength = 50
+)
+
+```
+
+```{r}
+# Create a data frame for rhinos
+rhinos_4 <- data.frame(mother = lbl$Mother, child = lbl$Name)
+
+# Add a root node
+root_nodes <- unique(rhinos_4$mother)
+rhinos_4 <- rbind(data.frame(mother = "Root", child = root_nodes), rhinos_4)
+
+# Ensure there are no NAs in the child column
+rhinos_4 <- rhinos_4[!is.na(rhinos_4$child), ]  
+
+# Check if the Root node is properly set up
+if(!"Root" %in% rhinos_4$mother) {
+  stop("Root node is not properly connected to the tree.")
+}
+
+# Create a tree structure from the rhinos_4 data frame
+rhino_tree <- FromDataFrameNetwork(rhinos_4)
+
+# Generate a collapsible tree diagram
+collapsibleTree(
+  rhino_tree,
+  root = "Root",
+  nodeSize = "leafCount",
+  fontSize = 10,
+  linkLength = 50
+)
+print(rhinos_4)
+tryCatch({
+  rhino_tree <- FromDataFrameNetwork(rhinos_4)
+}, error = function(e) {
+  print("Error in constructing the tree:")
+  print(e)
+})
+
+
+```
+
+
+
+```{r}
+# Create the rhinos_2 data frame
+lbl2 <- data.frame(mother = lbl$Mother, child = lbl$Name)
+
+# Add a root node
+lbl2<- rbind(data.frame(mother = "Root", child = unique(lbl2$mother)), lbl2)
+
+# Create a tree structure from the rhinos_2 data frame
+rhino_tree <- FromDataFrameNetwork(lbl2)
+
+# Generate a collapsible tree diagram
+collapsibleTree(
+  rhino_tree,
+  root = "Root",
+  nodeSize = "leafCount",
+  fontSize = 10,
+  linkLength = 50
+)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
