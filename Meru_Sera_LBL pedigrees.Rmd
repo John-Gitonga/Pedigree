@@ -1,0 +1,160 @@
+---
+title: "Pedigrees"
+output: html_notebook
+---
+
+```{r}
+#load libraries
+library("kinship2")
+library("devtools")  
+#library("pedantics")
+library(pedigree)
+library("adegenet")
+
+```
+
+### Sera pedigree
+```{r}
+url <- "https://raw.githubusercontent.com/John-Gitonga/Pedigree/refs/heads/main/updated_Sera_rhino.csv"
+sera_rhino <- read.csv(url)
+ped <- pedigree(id = sera_rhino$Name,
+                dadid = sera_rhino$Father,
+                momid = sera_rhino$Mother,
+                sex = sera_rhino$Sex)
+
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+pdf("~/Strathmore/MSc Data Science Analytics/Year 1/Module III/Dissertation Seminar I/Data folder/Sera/Sera_pedigree_plot.pdf")  # Specify the correct path
+# Plot the pedigree
+plot(ped, ces = 0.1, asp = 25/4, cex = 0.5)
+# Close the PDF device
+dev.off()
+# Prepare the data frame for inbreeding calculation
+ped_df <- data.frame(id = sera_rhino$Name,
+                dadid = sera_rhino$Father,
+                momid = sera_rhino$Mother,
+                sex = sera_rhino$Sex)
+
+# Ensure the pedigree is ordered using kindepth (to make sure ancestors come before descendants)
+depth <- kindepth(ped_df$id, ped_df$dadid, ped_df$momid)
+
+# Reorder the pedigree data frame by depth to resolve the ordering issue
+ped_df_ordered <- ped_df[order(depth), ]
+
+# Calculate inbreeding using the ordered pedigree data frame
+inbreeding_coeffs <- calcInbreeding(ped_df_ordered)
+print(inbreeding_coeffs)
+# Count generations
+generation_count <- countGen(ped_df_ordered)
+print(generation_count)
+
+# Calculate kinship
+kinship_matrix <- kinship(ped_df_ordered)
+print(kinship_matrix)
+kinship(ped)
+
+```
+
+
+
+### Meru Script
+```{r}
+url <- "https://raw.githubusercontent.com/John-Gitonga/Pedigree/refs/heads/main/Meru%20rhinos.csv"
+meru <- read.csv(url)
+
+ped <- pedigree(id = meru$Name,
+                dadid = meru$Father,
+                momid = meru$Mother,
+                sex = meru$Sex)
+
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+# Plot the pedigree with the corrected colors
+jpeg("C:/Users/user/OneDrive/Documents/Strathmore/MSc Data Science Analytics/Year II/Dissertations Seminars II/Meru/Meru_pedigree_plot.jpeg")  # Specify the correct path
+# Plot the pedigree
+plot(ped, asp = 25/4, cex = 0.5)
+# Close the PDF device
+dev.off()
+# Prepare the data frame for inbreeding calculation
+ped_df <- data.frame(id = meru$Name,
+                dadid = meru$Father,
+                momid = meru$Mother,
+                sex = meru$Sex)
+
+# Ensure the pedigree is ordered using kindepth (to make sure ancestors come before descendants)
+depth <- kindepth(ped_df$id, ped_df$dadid, ped_df$momid)
+
+# Reorder the pedigree data frame by depth to resolve the ordering issue
+ped_df_ordered <- ped_df[order(depth), ]
+
+# Calculate inbreeding using the ordered pedigree data frame
+inbreeding_coeffs <- calcInbreeding(ped_df_ordered)
+print(inbreeding_coeffs)
+# Count generations
+generation_count <- countGen(ped_df_ordered)
+print(generation_count)
+
+# Calculate kinship
+kinship_matrix <- kinship(ped_df_ordered)
+print(kinship_matrix)
+kinship(ped)
+library(pedigree)
+
+# Assuming 'ped' is your pedigree object
+kinship_matrix <- kinship(ped)
+
+# Convert the kinship matrix to a data frame
+kinship_df <- as.data.frame(kinship_matrix)
+
+# Save the data frame to a CSV file
+write.csv(kinship_df, file = "C:/Users/user/OneDrive/Documents/Strathmore/MSc Data Science Analytics/Year II/Dissertations Seminars II/Meru/Meru_rhinos_2.csv")
+
+```
+
+#### Lewa Borana Landscape
+```{r}
+url <- "https://raw.githubusercontent.com/John-Gitonga/Pedigree/refs/heads/main/lewa%20borana%20rhinos-APLRS.csv"
+lewaborana <- read.csv(url)
+#Edited one hope to hope_2
+#Change Sex of Zaria from female to male
+# Change the sex of the individual whose name is "Zaria" to "M"
+
+ped <- pedigree(id = lewaborana$RhinoID,
+                dadid = lewaborana$Father,
+                momid = lewaborana$Mother,
+                sex = lewaborana$Sex)
+
+align.pedigree(ped, packed=TRUE, width=300, align=TRUE, hints=ped$hints)
+# Plot the pedigree with the corrected colors
+pdf("C:/Users/user/OneDrive/Documents/Strathmore/MSc Data Science Analytics/Year II/Dissertations Seminars II/LewaBorana/LewaBorana_pedigree_plot.pdf", width = 11, height = 8.5)  # Specify the correct path
+# Plot the pedigree
+#plot(ped, ces = 0.1, asp = 25/4, cex = 0.7)
+plot(ped, cex = 0.5)#, #asp = 25/4) 
+#Close the PDF device
+dev.off()
+# Prepare the data frame for inbreeding calculation
+ped_df <- data.frame(id = lewaborana$RhinoID,
+                     dadid = lewaborana$Father,
+                     momid = lewaborana$Mother,
+                     sex = lewaborana$Sex)
+
+# Ensure the pedigree is ordered using kindepth (to make sure ancestors come before descendants)
+depth <- kindepth(ped_df$id, ped_df$dadid, ped_df$momid)
+
+# Reorder the pedigree data frame by depth to resolve the ordering issue
+ped_df_ordered <- ped_df[order(depth), ]
+
+# Calculate inbreeding using the ordered pedigree data frame
+inbreeding_coeffs <- calcInbreeding(ped_df_ordered)
+print(inbreeding_coeffs)
+# Count generations
+generation_count <- countGen(ped_df_ordered)
+print(generation_count)
+
+# Calculate kinship
+kinship_matrix <- kinship(ped_df_ordered)
+print(kinship_matrix)
+kinship(ped).
+
+```
+### Ol Pejeta Conservency
+
+
